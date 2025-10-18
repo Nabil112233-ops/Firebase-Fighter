@@ -3,9 +3,11 @@ import { Link } from 'react-router';
 import MyContainer from '../Components/MyContainer';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth } from '../Firebase/firebase.config';
 import { toast } from 'react-toastify';
+
+const googleProvider = new GoogleAuthProvider();
 
 const Signin = () => {
     const [show, setShow] = useState(false)
@@ -28,10 +30,20 @@ const Signin = () => {
             })
     }
 
-    const handleGoogleSignin = () => { }
+    const handleGoogleSignin = () => {
+        signInWithPopup(auth, googleProvider)
+        .then(res => {
+            toast.success('SignIn with google is succesfull')
+            setUser(res.user)
+        })
+        .catch(e => {
+            toast.error('Please add google accaount in browser', e)
+        })
+    }
 
     const handleSignout = () => {
         signOut(auth).then(res => {
+            console.log(res)
             setUser(null)
             toast.success('signout succesfully')
         }).catch(e => {

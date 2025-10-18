@@ -32,7 +32,8 @@ const Signup = () => {
             })
             .catch(e => {
                 console.log(e)
-                toast.error(e.message)
+                console.log(e.code)
+                toast.error('User already exist')
             })
     }
 
