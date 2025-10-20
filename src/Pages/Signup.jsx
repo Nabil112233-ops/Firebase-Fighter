@@ -3,7 +3,7 @@ import MyContainer from '../Components/MyContainer';
 import { Link } from 'react-router';
 import { auth } from '../Firebase/firebase.config';
 import { toast } from 'react-toastify';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
 
@@ -13,21 +13,51 @@ const Signup = () => {
 
     const handleSignUp = (e) => {
         e.preventDefault()
+        const name = e.target.name.value;
+        const photo = e.target.photo.value;
         const email = e.target.email.value;
         const password = e.target.password.value;
-        console.log({ email, password })
+        console.log({ email, password, name, photo })
 
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/
 
-        if(!regex.test(password)) {
+        if (!regex.test(password)) {
             toast.error("Password must be at least 6 characters and include at least one uppercase letter, one lowercase letter, and one number.")
             return;
         }
 
-
+        //Create user with email and password
         createUserWithEmailAndPassword(auth, email, password)
-            .then(result => {
-                console.log(result)
+            .then(res => {
+
+                //update profile
+
+                updateProfile(res.user, {
+                    displayName: name,
+                    photoURL: photo
+                })
+                    .then(() => {
+                        console.log(res)
+
+                        //send verification email
+
+                        sendEmailVerification(res.user)
+                            .then(res => {
+                                console.log(res);
+                                toast.info('Please verify your email address')
+                            })
+                            .catch(err => {
+                                console.log(err)
+                                toast.error('Failed to send verification email')
+                            })
+
+                        toast.success('Profile updated successfully')
+                    })
+                    .catch((err) => {
+                        console.log(err)
+                        toast.error('Failed to update profile')
+                    });
+                console.log(res)
                 toast.success('signup succesfull')
             })
             .catch(e => {
@@ -64,6 +94,24 @@ const Signup = () => {
 
                         <form onSubmit={handleSignUp} className="space-y-4">
                             <div>
+                                <label className="block text-sm font-medium mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    placeholder="Your Name"
+                                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Photo</label>
+                                <input
+                                    type="text"
+                                    name="photo"
+                                    placeholder="Photo URL here"
+                                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium mb-1">Email</label>
                                 <input
                                     type="email"
@@ -87,7 +135,7 @@ const Signup = () => {
                                     onClick={() => setShow(!show)}
                                     className="absolute right-[8px] top-[36px] cursor-pointer z-50"
                                 >
-                                    {show ? <FaEye /> : <IoEyeOff/>}
+                                    {show ? <FaEye /> : <IoEyeOff />}
                                 </span>
                             </div>
 

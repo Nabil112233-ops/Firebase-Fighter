@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import MyContainer from '../Components/MyContainer';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { GithubAuthProvider, GoogleAuthProvider, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth } from '../Firebase/firebase.config';
 import { toast } from 'react-toastify';
 
 const googleProvider = new GoogleAuthProvider();
-
-const Signin = () => {
+const githubProvider = new GithubAuthProvider();   
+    const Signin = () => {
     const [show, setShow] = useState(false)
     const [user, setUser] = useState(null);
+
+    // const [email, setEmail] = useState(null);
+    const emailRef = useRef(null)
 
     const handleSignin = (e) => {
         e.preventDefault()
@@ -20,6 +23,10 @@ const Signin = () => {
         // console.log({email, password})
         signInWithEmailAndPassword(auth, email, password)
             .then(res => {
+                if(!res.user.emailVerified) {
+                    toast.error('Please verify your email before signing in')
+                    return;
+                }
                 console.log(res)
                 setUser(res.user)
                 toast.success('signin successfull')
@@ -32,13 +39,24 @@ const Signin = () => {
 
     const handleGoogleSignin = () => {
         signInWithPopup(auth, googleProvider)
-        .then(res => {
-            toast.success('SignIn with google is succesfull')
-            setUser(res.user)
-        })
-        .catch(e => {
-            toast.error('Please add google accaount in browser', e)
-        })
+            .then(res => {
+                toast.success('SignIn with google is succesfull')
+                setUser(res.user)
+            })
+            .catch(e => {
+                toast.error(e.message)
+            })
+    }
+
+    const handleGithubSignin = () => {
+        signInWithPopup(auth, githubProvider)
+            .then(res => {
+                toast.success('SignIn with github is succesfull')
+                setUser(res.user)
+            })
+            .catch(e => {
+                toast.error(e.message)
+            })
     }
 
     const handleSignout = () => {
@@ -51,6 +69,16 @@ const Signin = () => {
         })
     }
 
+    const handleForgetPassword = () => {
+        const email = emailRef.current.value;
+        sendPasswordResetEmail(auth, email)
+        .then(() => { 
+            toast.success('Password reset email sent')
+        })
+        .catch(e => {
+            toast.error(e.message)
+        })
+    }
     console.log(user)
 
     return (
@@ -100,6 +128,9 @@ const Signin = () => {
                                     <input
                                         type="email"
                                         name="email"
+                                        ref={emailRef}
+                                        // value={email}
+                                        // onChange={(e) => setEmail(e.target.value)}
                                         placeholder="example@email.com"
                                         className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     />
@@ -120,6 +151,11 @@ const Signin = () => {
                                         {show ? <FaEye /> : <IoEyeOff />}
                                     </span>
                                 </div>
+
+                                <button className='hover:underline cursor-pointer' 
+                                onClick={handleForgetPassword}
+                                type='button'
+                                >Forget password?</button>
 
                                 <button type="submit" className="my-btn">
                                     Login
@@ -144,6 +180,19 @@ const Signin = () => {
                                         className="w-5 h-5"
                                     />
                                     Continue with Google
+                                </button>
+                                {/* GitHub Signin */}
+                                <button
+                                    type="button"
+                                    onClick={handleGithubSignin}
+                                    className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                                >
+                                    <img
+                                        src="https://img.icons8.com/sf-regular-filled/48/github.png"
+                                        alt="github"
+                                        className="w-5 h-5"
+                                    />
+                                    Continue with GitHub
                                 </button>
 
                                 <p className="text-center text-sm text-white/80 mt-3">
