@@ -1,34 +1,43 @@
-import React, { useRef, useState } from 'react';
-import { Link } from 'react-router';
+import React, { useContext, useRef, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import MyContainer from '../Components/MyContainer';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
-import { GithubAuthProvider, GoogleAuthProvider, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
-import { auth } from '../Firebase/firebase.config';
 import { toast } from 'react-toastify';
+import AuthContext from '../Context/AuthContext';
 
-const googleProvider = new GoogleAuthProvider();
-const githubProvider = new GithubAuthProvider();   
-    const Signin = () => {
+
+const Signin = () => {
     const [show, setShow] = useState(false)
-    const [user, setUser] = useState(null);
+    const { signInWithEmailAndPasswordfunc, signinWithGoogle, signinWithGithub, setLoading, sendPasswordResetEmailFunc, user, setUser } = useContext(AuthContext)
+
+    const location = useLocation();
+    const from = location.state || '/';
+    const navigate = useNavigate();
+    console.log(location)
 
     // const [email, setEmail] = useState(null);
     const emailRef = useRef(null)
+
+    if(user) {
+        return <Navigate to='/'></Navigate>
+    }
 
     const handleSignin = (e) => {
         e.preventDefault()
         const email = e.target.email.value;
         const password = e.target.password.value;
         // console.log({email, password})
-        signInWithEmailAndPassword(auth, email, password)
+        signInWithEmailAndPasswordfunc(email, password)
             .then(res => {
-                if(!res.user.emailVerified) {
+                if (!res.user.emailVerified) {
                     toast.error('Please verify your email before signing in')
                     return;
                 }
                 console.log(res)
+                navigate(from)
                 setUser(res.user)
+                setLoading(false)
                 toast.success('signin successfull')
             })
             .catch(e => {
@@ -38,10 +47,12 @@ const githubProvider = new GithubAuthProvider();
     }
 
     const handleGoogleSignin = () => {
-        signInWithPopup(auth, googleProvider)
+        signinWithGoogle()
             .then(res => {
                 toast.success('SignIn with google is succesfull')
                 setUser(res.user)
+                navigate(from)
+                setLoading(false)
             })
             .catch(e => {
                 toast.error(e.message)
@@ -49,35 +60,27 @@ const githubProvider = new GithubAuthProvider();
     }
 
     const handleGithubSignin = () => {
-        signInWithPopup(auth, githubProvider)
+        signinWithGithub()
             .then(res => {
                 toast.success('SignIn with github is succesfull')
                 setUser(res.user)
+                navigate(from)
+                setLoading(false)
             })
             .catch(e => {
                 toast.error(e.message)
             })
     }
 
-    const handleSignout = () => {
-        signOut(auth).then(res => {
-            console.log(res)
-            setUser(null)
-            toast.success('signout succesfully')
-        }).catch(e => {
-            toast.error(e.message)
-        })
-    }
-
     const handleForgetPassword = () => {
         const email = emailRef.current.value;
-        sendPasswordResetEmail(auth, email)
-        .then(() => { 
-            toast.success('Password reset email sent')
-        })
-        .catch(e => {
-            toast.error(e.message)
-        })
+        sendPasswordResetEmailFunc(email)
+            .then(() => {
+                toast.success('Password reset email sent')
+            })
+            .catch(e => {
+                toast.error(e.message)
+            })
     }
     console.log(user)
 
@@ -104,108 +107,93 @@ const githubProvider = new GithubAuthProvider();
 
                     {/* Login card */}
                     <div className="w-full max-w-md backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl rounded-2xl p-8">
-                        {user ? (
-                            <div className="text-center space-y-3">
-                                <img
-                                    src={user?.photoURL || "https://via.placeholder.com/88"}
-                                    className="h-20 w-20 rounded-full mx-auto"
-                                    alt=""
+                        <form onSubmit={handleSignin} className="space-y-5">
+                            <h2 className="text-2xl font-semibold mb-2 text-center text-white">
+                                Sign In
+                            </h2>
+
+                            <div>
+                                <label className="block text-sm mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    ref={emailRef}
+                                    // value={email}
+                                    // onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="example@email.com"
+                                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 />
-                                <h2 className="text-xl font-semibold">{user?.displayName}</h2>
-                                <p className="text-white/80">{user?.email}</p>
-                                <button onClick={handleSignout} className="my-btn">
-                                    Sign Out
-                                </button>
                             </div>
-                        ) : (
-                            <form onSubmit={handleSignin} className="space-y-5">
-                                <h2 className="text-2xl font-semibold mb-2 text-center text-white">
-                                    Sign In
-                                </h2>
 
-                                <div>
-                                    <label className="block text-sm mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        ref={emailRef}
-                                        // value={email}
-                                        // onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="example@email.com"
-                                        className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    />
-                                </div>
+                            <div className="relative">
+                                <label className="block text-sm mb-1">Password</label>
+                                <input
+                                    type={show ? "text" : "password"}
+                                    name="password"
+                                    placeholder="••••••••"
+                                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                />
+                                <span
+                                    onClick={() => setShow(!show)}
+                                    className="absolute right-[8px] top-[36px] cursor-pointer z-50"
+                                >
+                                    {show ? <FaEye /> : <IoEyeOff />}
+                                </span>
+                            </div>
 
-                                <div className="relative">
-                                    <label className="block text-sm mb-1">Password</label>
-                                    <input
-                                        type={show ? "text" : "password"}
-                                        name="password"
-                                        placeholder="••••••••"
-                                        className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    />
-                                    <span
-                                        onClick={() => setShow(!show)}
-                                        className="absolute right-[8px] top-[36px] cursor-pointer z-50"
-                                    >
-                                        {show ? <FaEye /> : <IoEyeOff />}
-                                    </span>
-                                </div>
-
-                                <button className='hover:underline cursor-pointer' 
+                            <button className='hover:underline cursor-pointer'
                                 onClick={handleForgetPassword}
                                 type='button'
-                                >Forget password?</button>
+                            >Forget password?</button>
 
-                                <button type="submit" className="my-btn">
-                                    Login
-                                </button>
+                            <button type="submit" className="my-btn">
+                                Login
+                            </button>
 
-                                {/* Divider */}
-                                <div className="flex items-center justify-center gap-2 my-2">
-                                    <div className="h-px w-16 bg-white/30"></div>
-                                    <span className="text-sm text-white/70">or</span>
-                                    <div className="h-px w-16 bg-white/30"></div>
-                                </div>
+                            {/* Divider */}
+                            <div className="flex items-center justify-center gap-2 my-2">
+                                <div className="h-px w-16 bg-white/30"></div>
+                                <span className="text-sm text-white/70">or</span>
+                                <div className="h-px w-16 bg-white/30"></div>
+                            </div>
 
-                                {/* Google Signin */}
-                                <button
-                                    type="button"
-                                    onClick={handleGoogleSignin}
-                                    className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                            {/* Google Signin */}
+                            <button
+                                type="button"
+                                onClick={handleGoogleSignin}
+                                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                            >
+                                <img
+                                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                                    alt="google"
+                                    className="w-5 h-5"
+                                />
+                                Continue with Google
+                            </button>
+                            {/* GitHub Signin */}
+                            <button
+                                type="button"
+                                onClick={handleGithubSignin}
+                                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                            >
+                                <img
+                                    src="https://img.icons8.com/sf-regular-filled/48/github.png"
+                                    alt="github"
+                                    className="w-5 h-5"
+                                />
+                                Continue with GitHub
+                            </button>
+
+                            <p className="text-center text-sm text-white/80 mt-3">
+                                Don’t have an account?{" "}
+                                <Link
+                                    to="/signup"
+                                    className="text-pink-300 hover:text-white underline"
                                 >
-                                    <img
-                                        src="https://www.svgrepo.com/show/475656/google-color.svg"
-                                        alt="google"
-                                        className="w-5 h-5"
-                                    />
-                                    Continue with Google
-                                </button>
-                                {/* GitHub Signin */}
-                                <button
-                                    type="button"
-                                    onClick={handleGithubSignin}
-                                    className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
-                                >
-                                    <img
-                                        src="https://img.icons8.com/sf-regular-filled/48/github.png"
-                                        alt="github"
-                                        className="w-5 h-5"
-                                    />
-                                    Continue with GitHub
-                                </button>
-
-                                <p className="text-center text-sm text-white/80 mt-3">
-                                    Don’t have an account?{" "}
-                                    <Link
-                                        to="/signup"
-                                        className="text-pink-300 hover:text-white underline"
-                                    >
-                                        Sign up
-                                    </Link>
-                                </p>
-                            </form>
-                        )}
+                                    Sign up
+                                </Link>
+                            </p>
+                        </form>
                     </div>
                 </div>
             </MyContainer>

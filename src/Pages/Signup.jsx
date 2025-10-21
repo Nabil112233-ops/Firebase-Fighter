@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import MyContainer from '../Components/MyContainer';
 import { Link } from 'react-router';
-import { auth } from '../Firebase/firebase.config';
 import { toast } from 'react-toastify';
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
+import { useContext } from 'react';
+import AuthContext from '../Context/AuthContext';
 
 const Signup = () => {
 
     const [show, setShow] = useState(false)
+    const { createUser, updateProfilefunc, sendEmailVerificationFunc, setLoading } = useContext(AuthContext);
 
     const handleSignUp = (e) => {
         e.preventDefault()
-        const name = e.target.name.value;
+        const displayName = e.target.name.value;
         const photo = e.target.photo.value;
         const email = e.target.email.value;
         const password = e.target.password.value;
-        console.log({ email, password, name, photo })
+        // console.log({ email, password, name, photo })
 
         const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/
 
@@ -27,13 +28,14 @@ const Signup = () => {
         }
 
         //Create user with email and password
-        createUserWithEmailAndPassword(auth, email, password)
+        // createUserWithEmailAndPassword(auth, email, password)
+        createUser(email, password)
             .then(res => {
 
                 //update profile
 
-                updateProfile(res.user, {
-                    displayName: name,
+                updateProfilefunc({
+                    displayName,
                     photoURL: photo
                 })
                     .then(() => {
@@ -41,9 +43,10 @@ const Signup = () => {
 
                         //send verification email
 
-                        sendEmailVerification(res.user)
+                        sendEmailVerificationFunc()
                             .then(res => {
                                 console.log(res);
+                                setLoading(false)
                                 toast.info('Please verify your email address')
                             })
                             .catch(err => {
@@ -51,10 +54,10 @@ const Signup = () => {
                                 toast.error('Failed to send verification email')
                             })
 
-                        toast.success('Profile updated successfully')
+                    toast.success('Profile updated successfully')
                     })
-                    .catch((err) => {
-                        console.log(err)
+                    .catch(() => {
+                        console.log(e)
                         toast.error('Failed to update profile')
                     });
                 console.log(res)
